@@ -139,6 +139,21 @@ class MainWindow(QMainWindow):
         self.plantas = self.generate_plantas(num_plantas, grow_plants)
         
         self.update_plot()
+    
+    def run_genetic_algorithm(self):
+        # Aquí va el código del algoritmo genético.
+        # Por ejemplo:
+        # 1. Evaluar la aptitud de cada "comedor" basado en su proximidad a las plantas.
+        # 2. Seleccionar los "comedores" más aptos.
+        # 3. Cruzar y mutar los "comedores" seleccionados para crear una nueva generación.
+        # 4. Reemplazar la generación actual con la nueva generación.
+        # 5. Repetir por un número determinado de generaciones o hasta que se alcance un criterio de parada.
+        
+        # Nota: Necesitarás definir cómo se evalúa la aptitud, cómo se seleccionan, cruzan y mutan los "comedores", etc.
+        
+        # Al final, actualiza la gráfica para mostrar los resultados del algoritmo genético.
+        self.update_plot()
+
 
     def generate_comedores(self, num_comedores, nacer_com):
         comedores = []
