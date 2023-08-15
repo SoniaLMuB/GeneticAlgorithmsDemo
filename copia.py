@@ -4,10 +4,11 @@ import math
 import matplotlib.pyplot as plt
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
+from matplotlib.animation import FuncAnimation
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 import matplotlib.style as mplstyle
-mplstyle.use('fast')
+#mplstyle.use('fast')
 
 
 class MainWindow(QMainWindow):
@@ -137,6 +138,9 @@ class MainWindow(QMainWindow):
         #Inicializamos el temporizador
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.move_comedores)
+        
+        # # Inicializa la animación
+        # self.animation = FuncAnimation(self.figure, self.update_plot, blit=True, repeat=False)
 
     def update_comedores(self):
         num_comedores_index = self.comboTrgetPob.currentIndex()
@@ -176,22 +180,6 @@ class MainWindow(QMainWindow):
         # 3. Seleccionar un subconjunto de los comedores más aptos
         num_seleccionados = int(len(comedores) * porcentaje_seleccion)
         return comedores_ordenados[:num_seleccionados]
-
-
-    def run_genetic_algorithm(self):
-        # Aquí va el código del algoritmo genético.
-        # Por ejemplo:
-        # 1. Evaluar la aptitud de cada "comedor" basado en su proximidad a las plantas.
-        # 2. Seleccionar los "comedores" más aptos.
-        # 3. Cruzar y mutar los "comedores" seleccionados para crear una nueva generación.
-        # 4. Reemplazar la generación actual con la nueva generación.
-        # 5. Repetir por un número determinado de generaciones o hasta que se alcance un criterio de parada.
-        
-        # Nota: Necesitarás definir cómo se evalúa la aptitud, cómo se seleccionan, cruzan y mutan los "comedores", etc.
-        
-        # Al final, actualiza la gráfica para mostrar los resultados del algoritmo genético.
-        self.update_plot()
-
 
     def generate_comedores(self, num_comedores, nacer_com):
         comedores = []
@@ -286,7 +274,6 @@ class MainWindow(QMainWindow):
         child2 = (parent2[0], parent1[1])
         return child1, child2
 
-
     def reiniciar_mundo(self):
         comedores_seleccionados = self.seleccionar_comedores_aptos(self.comedores, self.plantas)
         self.comedores = self.generar_nueva_generacion(comedores_seleccionados)
@@ -361,7 +348,7 @@ class MainWindow(QMainWindow):
             # Si el comportamiento es "No regresa", entonces simplemente no hacemos nada
 
         # Actualiza la gráfica
-        self.plot_example()
+        self.update_plot()
 
 
     def plot_example(self):
@@ -390,11 +377,29 @@ class MainWindow(QMainWindow):
         ax.set_xticks([])
         #Actualizamos la gráfica en el canvas
         self.canvas.draw()
-        #self.cache=self.canvas.copy_from_bbox(ax.bbox)
+        self.cache=self.canvas.copy_from_bbox(ax.bbox)
 
     def update_plot(self):
-        #self.canvas.restore_region(self.cache)
-        self.plot_example()
+        ax = self.figure.axes[0]
+        
+        # Restauramos el fondo
+        self.canvas.restore_region(self.cache)
+        
+        # Limpiamos los comedores y plantas existentes
+        for line in ax.lines:
+            line.remove()
+        for patch in ax.patches:
+            patch.remove()
+        
+        # Dibujamos los comedores y plantas actuales
+        for x, y in self.comedores:
+            ax.plot(x, y, "4", color='red', markersize=7)
+        for x, y in self.plantas:
+            ax.add_patch(plt.Rectangle((x, y), 0.5, 0.5, color='green'))
+        
+        # Blit: Solo redibujamos las partes que han cambiado
+        self.canvas.blit(ax.bbox)
+
 
 
     def start(self):

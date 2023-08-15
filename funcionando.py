@@ -18,6 +18,8 @@ class MainWindow(QMainWindow):
         self.Programacorriendo=False
         self.correrPrograma=False
         self.cache=None
+        self.comedores_graphics = []
+        self.plantas_graphics = []
         self.initUI()
 
     def initUI(self):
@@ -176,22 +178,6 @@ class MainWindow(QMainWindow):
         # 3. Seleccionar un subconjunto de los comedores más aptos
         num_seleccionados = int(len(comedores) * porcentaje_seleccion)
         return comedores_ordenados[:num_seleccionados]
-
-
-    def run_genetic_algorithm(self):
-        # Aquí va el código del algoritmo genético.
-        # Por ejemplo:
-        # 1. Evaluar la aptitud de cada "comedor" basado en su proximidad a las plantas.
-        # 2. Seleccionar los "comedores" más aptos.
-        # 3. Cruzar y mutar los "comedores" seleccionados para crear una nueva generación.
-        # 4. Reemplazar la generación actual con la nueva generación.
-        # 5. Repetir por un número determinado de generaciones o hasta que se alcance un criterio de parada.
-        
-        # Nota: Necesitarás definir cómo se evalúa la aptitud, cómo se seleccionan, cruzan y mutan los "comedores", etc.
-        
-        # Al final, actualiza la gráfica para mostrar los resultados del algoritmo genético.
-        self.update_plot()
-
 
     def generate_comedores(self, num_comedores, nacer_com):
         comedores = []
@@ -365,32 +351,36 @@ class MainWindow(QMainWindow):
 
 
     def plot_example(self):
-        #Limpiamos la figura
-        self.figure.clear()
-        #Obtenemos el eje de la figura
-        ax = self.figure.add_subplot(111)
+        # Limpiamos la figura
+        if not self.comedores_graphics:  # Si es la primera vez
+            ax = self.figure.add_subplot(111)
+            
+            # Dibuja comedores
+            for x, y in self.comedores:
+                comedor, = ax.plot(x, y, "4", color='red', markersize=7)
+                self.comedores_graphics.append(comedor)
 
-        #Definir límites máximos para los ejes x e y
-        max_x = 40
-        max_y = 40
+            # Dibuja plantas
+            for x, y in self.plantas:
+                planta = ax.add_patch(plt.Rectangle((x, y), 0.5, 0.5, color='green'))
+                self.plantas_graphics.append(planta)
 
-        #Dibujar comedores como palitos rojos
-        for x, y in self.comedores:
-            #ax.plot([x, x], [y, y + 1], color='red')
-            ax.plot(x, y,"4", color='red',markersize=7)
+            ax.set_xlim(0, 40)
+            ax.set_ylim(0, 40)
+            ax.set_yticks([])
+            ax.set_xticks([])
 
-        #Dibujar plantas como cuadritos verdes
-        for x, y in self.plantas:
-            ax.add_patch(plt.Rectangle((x, y), 0.5, 0.5, color='green'))
+            self.canvas.draw()
+        else:
+            # Si no es la primera vez, solo actualiza las coordenadas
+            for comedor_graphic, (x, y) in zip(self.comedores_graphics, self.comedores):
+                comedor_graphic.set_data([x], [y])
+            
+            # Actualiza las plantas (esto es un poco más complicado ya que son rectángulos)
+            for planta_graphic, (x, y) in zip(self.plantas_graphics, self.plantas):
+                planta_graphic.set_xy((x, y))
 
-        #Establecer los límites máximos de los ejes
-        ax.set_xlim(0, max_x)
-        ax.set_ylim(0, max_y)
-        ax.set_yticks([])
-        ax.set_xticks([])
-        #Actualizamos la gráfica en el canvas
-        self.canvas.draw()
-        #self.cache=self.canvas.copy_from_bbox(ax.bbox)
+            self.canvas.draw_idle()  # Este es un draw más eficiente para actualizaciones
 
     def update_plot(self):
         #self.canvas.restore_region(self.cache)

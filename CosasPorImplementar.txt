@@ -1,0 +1,14 @@
+Cosas por corregir:
+
+	Agregar lo de velocidad
+	Animación (se alenta)
+
+	Verificar cruce: Creo que ya quedó
+File "/home/soniamunoz/Documentos/sistemas_inteligentes/unidad3/individual/movimiento4.py", line 299, in move_comedores
+    self.reiniciar_mundo()
+  File "/home/soniamunoz/Documentos/sistemas_inteligentes/unidad3/individual/movimiento4.py", line 282, in reiniciar_mundo
+    self.comedores = self.generar_nueva_generacion(comedores_seleccionados)
+  File "/home/soniamunoz/Documentos/sistemas_inteligentes/unidad3/individual/movimiento4.py", line 246, in generar_nueva_generacion
+    child1, child2 = self.crossover(parent1, parent2)
+AttributeError: 'MainWindow' object has no attribute 'crossover'
+Traceback (most recent call last):
