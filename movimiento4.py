@@ -11,6 +11,8 @@ from matplotlib.figure import Figure
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.dias=0
+        self.anios=0
         self.initUI()
 
     def initUI(self):
@@ -56,7 +58,7 @@ class MainWindow(QMainWindow):
         self.combmutation.addItems(["0", "0.01", "0.05","0.1","1","2","5","10"])
         #self.combmutation.currentIndexChanged.connect(self.generarMundo)
 
-        labelcrossover = QLabel("% Probabilidad en putación:")
+        labelcrossover = QLabel("% Probabilidad de cruce:")
         self.combmcrossover = QComboBox()
         self.combmcrossover.addItems(["0", "10", "25","50","60","70","80","90","95"])
 
@@ -71,7 +73,9 @@ class MainWindow(QMainWindow):
         labelgrowbackplants = QLabel("Cuando la planta es comida")
         self.combmgrowbackplants = QComboBox()
         self.combmgrowbackplants.addItems(["Crece en un lugar aleatorio", "Crece cerca ", "No regresa"])
-
+        
+        self.labelDias = QLabel(f"Año {self.anios}. Día: {self.dias}")
+        controleslayout.addWidget(self.labelDias)
 
         #Agregamos los botones al layout de botones
         controleslayout.addWidget(buttonCorrer)
@@ -199,9 +203,44 @@ class MainWindow(QMainWindow):
             comedores.append((x, y))
         return comedores
     
-    def generarMundo(self,index):
+    def generarMundo(self):
+        self.dias = 0
+        self.anios =0
+        self.labelDias.setText(f"Año {self.anios}. Día: {self.dias}")
         self.update_comedores()
     
+
+    def mutate(self, comedor):
+        mutation_rate = float(self.combmutation.currentText())
+        if random.uniform(0, 100) < mutation_rate:
+            # Cambiamos ligeramente las coordenadas del comedor
+            dx = random.uniform(-2, 2)
+            dy = random.uniform(-2, 2)
+            mutated_x = comedor[0] + dx
+            mutated_y = comedor[1] + dy
+            return (mutated_x, mutated_y)
+        return comedor
+
+    def generar_nueva_generacion(self, comedores_seleccionados):
+        nueva_generacion = []
+        crossover_rate = float(self.combmcrossover.currentText())
+
+        for i in range(0, len(comedores_seleccionados)-1, 2):
+            parent1 = comedores_seleccionados[i]
+            parent2 = comedores_seleccionados[i+1]
+
+            # Aplicamos el crossover con una cierta probabilidad
+            if random.uniform(0, 100) < crossover_rate:
+                child1, child2 = self.crossover(parent1, parent2)
+            else:
+                child1, child2 = parent1, parent2
+
+            # Mutamos a los hijos y los añadimos a la nueva generación
+            nueva_generacion.append(self.mutate(child1))
+            nueva_generacion.append(self.mutate(child2))
+
+        return nueva_generacion
+
 
     def generate_plantas(self, num_plantas, grow_plants):
         plantas = []
@@ -227,10 +266,28 @@ class MainWindow(QMainWindow):
             plantas.append((x, y))
         return plantas
 
+    def reiniciar_mundo(self):
+        comedores_seleccionados = self.seleccionar_comedores_aptos(self.comedores, self.plantas)
+        self.comedores = self.generar_nueva_generacion(comedores_seleccionados)
+        self.update_comedores()  # reiniciar comedores y plantas
+        self.anios = 0
+        self.dias = 0
+        self.labelDias.setText(f"Día: {self.dias}")
+
     def move_comedores(self):
+        self.dias +=1
         # Velocidad de movimiento de los comedores
         speed = 1
-
+        if (self.dias==250):
+            self.anios +=1
+            self.dias=0
+            
+        if (self.anios>=1):
+            self.labelDias.setText(f"Año {self.anios}. Día: {self.dias}")
+            self.reiniciar_mundo()
+            return
+        else:
+            self.labelDias.setText(f"Día: {self.dias}")
         # Lista para almacenar las plantas que son comidas
         plantas_comidas = []
 
