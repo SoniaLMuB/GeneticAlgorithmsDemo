@@ -1,5 +1,6 @@
 import sys
 import random
+import math
 import matplotlib.pyplot as plt
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
@@ -14,7 +15,7 @@ class MainWindow(QMainWindow):
 
     def initUI(self):
         self.setWindowTitle("Genetic Algorithms Demo")
-        
+        self.setGeometry(100, 100, 1000, 750)  # Establece la posición y el tamaño de la ventana
         #Creamos un layout principal para la ventana
         main_layout = QHBoxLayout()
 
@@ -34,6 +35,7 @@ class MainWindow(QMainWindow):
         buttonPausa = QPushButton('Pausa')
         buttonStep = QPushButton('Por paso')
         buttonMundo = QPushButton('Generar mundo')
+
         
         labelVelocidad = QLabel("Velocidad")
         comboVelocif = QComboBox()
@@ -47,7 +49,7 @@ class MainWindow(QMainWindow):
         labelnacerCom = QLabel("Los comedores nacen:")
         self.nacerCom = QComboBox()
         self.nacerCom.addItems(["cerca del centro", "en un lugar aleatorio", "cerca de la esquina superior derecha", "En la ubicación del padre"])
-        self.nacerCom.currentIndexChanged.connect(self.generarMundo)
+        #self.nacerCom.currentIndexChanged.connect(self.generarMundo)
 
         labelmutation = QLabel("% Probabilidad en mutación:")
         self.combmutation = QComboBox()
@@ -66,9 +68,9 @@ class MainWindow(QMainWindow):
         self.combmgrowplants = QComboBox()
         self.combmgrowplants.addItems(["En filas", "En grupos ", "Aleatorio","A lo largo de la parte inferior"])
 
-        labelgrowplants = QLabel("Cuando la planta cr")
-        self.combmgrowplants = QComboBox()
-        self.combmgrowplants.addItems(["En filas", "En grupos ", "Aleatorio","A lo largo de la parte inferior"])
+        labelgrowbackplants = QLabel("Cuando la planta es comida")
+        self.combmgrowbackplants = QComboBox()
+        self.combmgrowbackplants.addItems(["Crece en un lugar aleatorio", "Crece cerca ", "No regresa"])
 
 
         #Agregamos los botones al layout de botones
@@ -77,20 +79,22 @@ class MainWindow(QMainWindow):
         controleslayout.addWidget(buttonStep)
         controleslayout.addWidget(buttonMundo)
 
-        #controleslayout.addWidget(labelVelocidad)
-        #controleslayout.addWidget(comboVelocif)
+        controleslayout.addWidget(labelVelocidad)
+        controleslayout.addWidget(comboVelocif)
         controleslayout.addWidget(labelcomedores)
         controleslayout.addWidget(self.comboTrgetPob)
         controleslayout.addWidget(labelnacerCom)
         controleslayout.addWidget(self.nacerCom)
-        #controleslayout.addWidget(labelmutation)
-        #controleslayout.addWidget(self.combmutation)
-        #controleslayout.addWidget(labelcrossover)
-        #controleslayout.addWidget(self.combmcrossover)
+        controleslayout.addWidget(labelmutation)
+        controleslayout.addWidget(self.combmutation)
+        controleslayout.addWidget(labelcrossover)
+        controleslayout.addWidget(self.combmcrossover)
         controleslayout.addWidget(labelplants)
         controleslayout.addWidget(self.combmplants)
         controleslayout.addWidget(labelgrowplants)
         controleslayout.addWidget(self.combmgrowplants)
+        controleslayout.addWidget(labelgrowbackplants)
+        controleslayout.addWidget(self.combmgrowbackplants)
 
         #Establecemos el layout de botones en el widget
         button_widget.setLayout(controleslayout)
@@ -107,8 +111,8 @@ class MainWindow(QMainWindow):
         #Conectamos los botones a sus funciones correspondientes
         buttonCorrer.clicked.connect(self.start)
         buttonMundo.clicked.connect(self.generarMundo)
-        buttonPausa.clicked.connect(self.on_button2_clicked)
-        buttonStep.clicked.connect(self.on_button3_clicked)
+        buttonPausa.clicked.connect(self.pausar_moviemitno)
+        buttonStep.clicked.connect(self.movimientopaso_x_paso)
 
         #Creamos una gráfica de ejemplo en Matplotlib
         self.comedores = []
@@ -140,6 +144,26 @@ class MainWindow(QMainWindow):
         
         self.update_plot()
     
+    def distancia_euclidiana(self,p1, p2):
+        return math.sqrt((p2[0] - p1[0])**2 + (p2[1] - p1[1])**2)
+
+    def calcular_proximidad_minima(self,comedor, plantas):
+        distancias = [self.distancia_euclidiana(comedor, planta) for planta in plantas]
+        return min(distancias)
+
+    def seleccionar_comedores_aptos(self,comedores, plantas, porcentaje_seleccion=0.5):
+        # 1. Evaluar la aptitud de cada comedor
+        aptitudes = [self.calcular_proximidad_minima(comedor, plantas) for comedor in comedores]
+        
+        # 2. Clasificar los comedores basados en su aptitud
+        # Usamos un truco aquí: zip para emparejar comedores con aptitudes, y luego ordenar basado en aptitud
+        comedores_ordenados = [comedor for comedor, aptitud in sorted(zip(comedores, aptitudes), key=lambda x: x[1])]
+        
+        # 3. Seleccionar un subconjunto de los comedores más aptos
+        num_seleccionados = int(len(comedores) * porcentaje_seleccion)
+        return comedores_ordenados[:num_seleccionados]
+
+
     def run_genetic_algorithm(self):
         # Aquí va el código del algoritmo genético.
         # Por ejemplo:
@@ -204,11 +228,61 @@ class MainWindow(QMainWindow):
         return plantas
 
     def move_comedores(self):
-        #Actualizar la posición de los comedores aquí
-        #Por ejemplo, puedes modificar las coordenadas de los comedores y luego llamar a plot_example para actualizar la gráfica
+        # Velocidad de movimiento de los comedores
+        speed = 1
 
-        #Llamar a plot_example para refrescar la gráfica
+        # Lista para almacenar las plantas que son comidas
+        plantas_comidas = []
+
+        for comedor in self.comedores:
+            # Genera una dirección aleatoria en la que moverse
+            angle = random.uniform(0, 2 * math.pi)
+            move_x = math.cos(angle) * speed
+            move_y = math.sin(angle) * speed
+
+            # Actualiza la posición del comedor
+            new_x = comedor[0] + move_x
+            new_y = comedor[1] + move_y
+
+            # Asegurarse de que el comedor no salga del límite del área de simulación
+            new_x = max(0, min(40, new_x))
+            new_y = max(0, min(40, new_y))
+
+            index = self.comedores.index(comedor)
+            self.comedores[index] = (new_x, new_y)
+
+            # Verificar si el comedor está cerca de alguna planta
+            for planta in self.plantas:
+                if self.distancia_euclidiana((new_x, new_y), planta) < 1.5:  # Asumimos que si están a menos de 1.5 unidades, el comedor come la planta
+                    plantas_comidas.append(planta)
+        
+        plantas_comidas_set = set(plantas_comidas)  # Convertir la lista a un conjunto
+
+        # Eliminar las plantas que fueron comidas
+        for planta in plantas_comidas_set:
+            self.plantas.remove(planta)
+            
+            # Comportamiento de las plantas después de ser comidas
+            comportamiento = self.combmgrowbackplants.currentText()
+            if comportamiento == "Crece en un lugar aleatorio":
+                new_x = random.uniform(0, 40)
+                new_y = random.uniform(0, 40)
+                self.plantas.append((new_x, new_y))
+            elif comportamiento == "Crece cerca":
+                # Ajustar la posición para que esté cerca de la posición anterior
+                dx = random.uniform(-2, 2)
+                dy = random.uniform(-2, 2)
+                new_x = planta[0] + dx
+                new_y = planta[1] + dy
+                # Asegurarse de que las nuevas coordenadas están dentro de los límites
+                new_x = max(0, min(40, new_x))
+                new_y = max(0, min(40, new_y))
+                self.plantas.append((new_x, new_y))
+            # Si el comportamiento es "No regresa", entonces simplemente no hacemos nada
+
+        # Actualiza la gráfica
         self.plot_example()
+
 
     def plot_example(self):
         #Limpiamos la figura
@@ -240,15 +314,14 @@ class MainWindow(QMainWindow):
 
 
     def start(self):
-        print("Botón 1 presionado")
-        #Iniciar el temporizador con un intervalo de tiempo (por ejemplo, 100 ms)
+        # Iniciar el temporizador con un intervalo de tiempo (por ejemplo, 100 ms)
         self.timer.start(100)
 
-    def on_button2_clicked(self):
-        print("Botón 2 presionado")
+    def pausar_moviemitno(self):
+        print("dunción pausar m")
 
-    def on_button3_clicked(self):
-        print("Botón 3 presionado")
+    def movimientopaso_x_paso(self):
+        print("funcionamiento paso por paso")
 
 
 if __name__ == '__main__':
