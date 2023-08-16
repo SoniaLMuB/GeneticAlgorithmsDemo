@@ -405,10 +405,11 @@ class MainWindow(QMainWindow):
         self.timer.start(100)
 
     def pausar_moviemitno(self):
-        print("dunción pausar m")
+        self.timer.stop()
 
     def movimientopaso_x_paso(self):
         print("funcionamiento paso por paso")
+        self.timer.start(1700)
 
 
 if __name__ == '__main__':
