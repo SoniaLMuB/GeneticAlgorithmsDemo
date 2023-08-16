@@ -18,8 +18,6 @@ class MainWindow(QMainWindow):
         self.Programacorriendo=False
         self.correrPrograma=False
         self.cache=None
-        self.comedores_graphics = []
-        self.plantas_graphics = []
         self.initUI()
 
     def initUI(self):
@@ -55,9 +53,8 @@ class MainWindow(QMainWindow):
         
         self.comboTrgetPob = QComboBox()
         labelcomedores = QLabel("Número de comedores")
-        self.comboTrgetPob.addItems(["10", "25", "30", "40", "50"])
-        #self.comboTrgetPob.currentIndexChanged.connect(self.update_comedores)
-
+        self.comboTrgetPob.addItems(["10", "25", "30", "40", "50","75"])
+        #self.comboTrgetPob.currentIndexChanged.connect(self.generarMundo)
         
         labelnacerCom = QLabel("Los comedores nacen:")
         self.nacerCom = QComboBox()
@@ -75,7 +72,7 @@ class MainWindow(QMainWindow):
 
         labelplants = QLabel("Número de plantas:")
         self.combmplants = QComboBox()
-        self.combmplants.addItems(["50", "100", "150","250","500"])
+        self.combmplants.addItems(["50", "100", "150","250"])
 
         labelgrowplants = QLabel("La planta crece")
         self.combmgrowplants = QComboBox()
@@ -158,24 +155,22 @@ class MainWindow(QMainWindow):
         grow_plants = self.combmgrowplants.itemText(grow_plants_index)
         
         self.plantas = self.generate_plantas(num_plantas, grow_plants)
-        # Cambia la velocidad 
         self.cambiar_velocidad()
         self.update_plot()
     
     def cambiar_velocidad(self):
         velocidad_texto = self.comboVelocif.currentText()
         if velocidad_texto == "Rápido":
-            velocidad_ms = 50  # 50 ms
+            velocidad_ms = 10  
         elif velocidad_texto == "Moderado":
-            velocidad_ms = 100  # 100 ms
+            velocidad_ms = 500  
         elif velocidad_texto == "Lento":
-            velocidad_ms = 200  # 200 ms
-        else:
-            velocidad_ms = 100  # Valor por defecto
-
-        # Si el temporizador está corriendo, actualiza su intervalo
+            velocidad_ms = 1500  
+        print (velocidad_ms)
+        # Si el temporizador está corriendo
+        #self.timer.setInterval(velocidad_ms)
         if self.timer.isActive():
-            self.timer.setInterval(velocidad_ms)
+             self.timer.setInterval(velocidad_ms)
 
     def distancia_euclidiana(self,p1, p2):
         return math.sqrt((p2[0] - p1[0])**2 + (p2[1] - p1[1])**2)
@@ -195,6 +190,8 @@ class MainWindow(QMainWindow):
         # 3. Seleccionar un subconjunto de los comedores más aptos
         num_seleccionados = int(len(comedores) * porcentaje_seleccion)
         return comedores_ordenados[:num_seleccionados]
+
+
 
     def generate_comedores(self, num_comedores, nacer_com):
         comedores = []
@@ -219,7 +216,6 @@ class MainWindow(QMainWindow):
     def generarMundo(self):
         self.dias = 0
         self.anios =0
-        self.comedores_graphics=self.comedores
         self.correrPrograma=True
         if (self.correrPrograma ):
             self.buttonCorrer.setEnabled(True)
@@ -294,25 +290,27 @@ class MainWindow(QMainWindow):
     def reiniciar_mundo(self):
         comedores_seleccionados = self.seleccionar_comedores_aptos(self.comedores, self.plantas)
         self.comedores = self.generar_nueva_generacion(comedores_seleccionados)
-        self.update_comedores()  # reiniciar comedores y plantas
-        self.anios = 0
+        
+        print("entre a reinciar")
         self.dias = 0
-        self.labelDias.setText(f"Día: {self.dias}")
+        self.anios +=1
+        self.labelDias.setText(f"Año{self.anios}.Día: {self.dias}")
+        self.update_comedores()  # reiniciar comedores y plantas
 
     def move_comedores(self):
         self.dias +=1
         # Velocidad de movimiento de los comedores
         speed = 1
         if (self.dias==250):
-            self.anios +=1
+            self.reiniciar_mundo()
             print(self.anios)
             self.dias=0
             
         if (self.anios>=1):
             self.labelDias.setText(f"Año {self.anios}. Día: {self.dias}")
-            self.reiniciar_mundo()
+            
             print("salie")
-            return
+            
         else:
             self.labelDias.setText(f"Día: {self.dias}")
         # Lista para almacenar las plantas que son comidas
@@ -369,37 +367,32 @@ class MainWindow(QMainWindow):
 
 
     def plot_example(self):
-        # Limpiamos la figura
-        if not self.comedores_graphics:  # Si es la primera vez
-            ax = self.figure.add_subplot(111)
-            
-            # Dibuja comedores
-            for x, y in self.comedores:
-                comedor, = ax.plot(x, y, "4", color='red', markersize=7)
-                self.comedores_graphics.append(comedor)
+        #Limpiamos la figura
+        self.figure.clear()
+        #Obtenemos el eje de la figura
+        ax = self.figure.add_subplot(111)
 
-            # Dibuja plantas
-            for x, y in self.plantas:
-                planta = ax.add_patch(plt.Rectangle((x, y), 0.5, 0.5, color='green'))
-                self.plantas_graphics.append(planta)
+        #Definir límites máximos para los ejes x e y
+        max_x = 40
+        max_y = 40
 
-            ax.set_xlim(0, 40)
-            ax.set_ylim(0, 40)
-            ax.set_yticks([])
-            ax.set_xticks([])
+        #Dibujar comedores como palitos rojos
+        for x, y in self.comedores:
+            #ax.plot([x, x], [y, y + 1], color='red')
+            ax.plot(x, y,"4", color='red',markersize=7)
 
-            self.canvas.draw()
-        else:
-            # Si no es la primera vez, solo actualiza las coordenadas
-            print(len(self.comedores_graphics))
-            for comedor_graphic, (x, y) in zip(self.comedores_graphics, self.comedores):
-                comedor_graphic.set_data([x], [y])
-            
-            # Actualiza las plantas (esto es un poco más complicado ya que son rectángulos)
-            for planta_graphic, (x, y) in zip(self.plantas_graphics, self.plantas):
-                planta_graphic.set_xy((x, y))
+        #Dibujar plantas como cuadritos verdes
+        for x, y in self.plantas:
+            ax.add_patch(plt.Rectangle((x, y), 0.5, 0.5, color='green'))
 
-            self.canvas.draw_idle()  # Este es un draw más eficiente para actualizaciones
+        #Establecer los límites máximos de los ejes
+        ax.set_xlim(0, max_x)
+        ax.set_ylim(0, max_y)
+        ax.set_yticks([])
+        ax.set_xticks([])
+        #Actualizamos la gráfica en el canvas
+        self.canvas.draw_idle()
+        #self.cache=self.canvas.copy_from_bbox(ax.bbox)
 
     def update_plot(self):
         #self.canvas.restore_region(self.cache)
