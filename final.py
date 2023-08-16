@@ -12,6 +12,9 @@ mplstyle.use('fast')
 
 class MainWindow(QMainWindow):
     def __init__(self):
+        """
+        Constructor donde se definen los atributos de la clase
+        """
         super().__init__()
         self.dias=0
         self.anios=0
@@ -21,6 +24,9 @@ class MainWindow(QMainWindow):
         self.initUI()
 
     def initUI(self):
+        """
+        Metodo para generar objetos graficos para la interfaz
+        """
         self.setWindowTitle("Genetic Algorithms Demo")
         self.setGeometry(100, 100, 1000, 750)  # Establece la posición y el tamaño de la ventana
         #Creamos un layout principal para la ventana
@@ -139,6 +145,9 @@ class MainWindow(QMainWindow):
         self.timer.timeout.connect(self.move_comedores)
 
     def update_comedores(self):
+        """
+        Metodo para actualizar la posicion de los comedores
+        """
         num_comedores_index = self.comboTrgetPob.currentIndex()
         num_comedores = int(self.comboTrgetPob.itemText(num_comedores_index))
         
@@ -159,6 +168,9 @@ class MainWindow(QMainWindow):
         self.update_plot()
     
     def cambiar_velocidad(self):
+        """
+        Metodo para modificar la velocidad de la simulacion
+        """
         velocidad_texto = self.comboVelocif.currentText()
         if velocidad_texto == "Rápido":
             velocidad_ms = 10  
@@ -166,20 +178,29 @@ class MainWindow(QMainWindow):
             velocidad_ms = 500  
         elif velocidad_texto == "Lento":
             velocidad_ms = 1500  
-        print (velocidad_ms)
+        # print(velocidad_ms)
         # Si el temporizador está corriendo
         #self.timer.setInterval(velocidad_ms)
         if self.timer.isActive():
              self.timer.setInterval(velocidad_ms)
 
     def distancia_euclidiana(self,p1, p2):
+        """
+        Metodo para calcular la distancia de una planta a un comedor
+        """
         return math.sqrt((p2[0] - p1[0])**2 + (p2[1] - p1[1])**2)
 
     def calcular_proximidad_minima(self,comedor, plantas):
+        """
+        Metodo para obtener al comedor mas cercano respecto a la planta
+        """
         distancias = [self.distancia_euclidiana(comedor, planta) for planta in plantas]
         return min(distancias)
 
     def seleccionar_comedores_aptos(self,comedores, plantas, porcentaje_seleccion=0.5):
+        """
+        Metodo que selecciona la muestra de los comedores mejor adaptados para la siguiente generacion
+        """
         # 1. Evaluar la aptitud de cada comedor
         aptitudes = [self.calcular_proximidad_minima(comedor, plantas) for comedor in comedores]
         
@@ -194,6 +215,9 @@ class MainWindow(QMainWindow):
 
 
     def generate_comedores(self, num_comedores, nacer_com):
+        """
+        Metodo para generar un conjunto de comedores
+        """
         comedores = []
         table_size = 40  #Tamaño de la tabla (se asume cuadrada, 40x40 en este caso)
         cell_size = 1  #Tamaño de una celda
@@ -214,6 +238,9 @@ class MainWindow(QMainWindow):
         return comedores
     
     def generarMundo(self):
+        """
+        Metodo para crear un mundo nuevo
+        """
         self.dias = 0
         self.anios =0
         self.correrPrograma=True
@@ -226,6 +253,9 @@ class MainWindow(QMainWindow):
         self.update_comedores() 
 
     def mutate(self, comedor):
+        """
+        Metodo encargado de evaluar la mutacion de las generaciones
+        """
         mutation_rate = float(self.combmutation.currentText())
         if random.uniform(0, 100) < mutation_rate:
             # Cambiamos ligeramente las coordenadas del comedor
@@ -237,6 +267,9 @@ class MainWindow(QMainWindow):
         return comedor
 
     def generar_nueva_generacion(self, comedores_seleccionados):
+        """
+        Metodo para generar una nueva generacion a partir de la mutacion y el cruce
+        """
         nueva_generacion = []
         crossover_rate = float(self.combmcrossover.currentText())
 
@@ -257,6 +290,9 @@ class MainWindow(QMainWindow):
         return nueva_generacion
 
     def generate_plantas(self, num_plantas, grow_plants):
+        """
+        Metodo para generar un conjunto de plantas
+        """
         plantas = []
         table_size = 40  #Tamaño de la tabla (se asume cuadrada, 40x40 en este caso)
         cell_size = 1  #Tamaño de una celda
@@ -281,6 +317,9 @@ class MainWindow(QMainWindow):
         return plantas
 
     def crossover(self, parent1, parent2):
+        """
+        Metodo encargado de realizar el cruce de los comedores mas aptos
+        """
         # Tomamos las coordenadas x de ambos padres y las intercambiamos
         child1 = (parent1[0], parent2[1])
         child2 = (parent2[0], parent1[1])
@@ -288,28 +327,34 @@ class MainWindow(QMainWindow):
 
 
     def reiniciar_mundo(self):
+        """
+        Metodo para reiniciar el mundo cada que pase 1 año, en el mundo 25o días
+        """
         comedores_seleccionados = self.seleccionar_comedores_aptos(self.comedores, self.plantas)
         self.comedores = self.generar_nueva_generacion(comedores_seleccionados)
         
-        print("entre a reinciar")
+        # print("entre a reinciar")
         self.dias = 0
         self.anios +=1
         self.labelDias.setText(f"Año{self.anios}.Día: {self.dias}")
         self.update_comedores()  # reiniciar comedores y plantas
 
     def move_comedores(self):
+        """
+        Metodo para calcular el siguiente movimiento de los comedores
+        """
         self.dias +=1
         # Velocidad de movimiento de los comedores
         speed = 1
         if (self.dias==250):
             self.reiniciar_mundo()
-            print(self.anios)
+            # print(self.anios)
             self.dias=0
             
         if (self.anios>=1):
             self.labelDias.setText(f"Año {self.anios}. Día: {self.dias}")
             
-            print("salie")
+            # print("salie")
             
         else:
             self.labelDias.setText(f"Día: {self.dias}")
@@ -367,6 +412,9 @@ class MainWindow(QMainWindow):
 
 
     def plot_example(self):
+        """
+        Metodo para actualizar la grafica del mundo
+        """
         #Limpiamos la figura
         self.figure.clear()
         #Obtenemos el eje de la figura
@@ -395,20 +443,32 @@ class MainWindow(QMainWindow):
         #self.cache=self.canvas.copy_from_bbox(ax.bbox)
 
     def update_plot(self):
+        """
+        Metodo para mandar a llamar la actualizacion del mundo
+        """
         #self.canvas.restore_region(self.cache)
         self.plot_example()
 
 
     def start(self):
+        """
+        Metodo para iniciar los timer de la simulacion
+        """
         # Iniciar el temporizador con un intervalo de tiempo (por ejemplo, 100 ms)
         self.Programacorriendo=True
         self.timer.start(100)
 
     def pausar_moviemitno(self):
+        """
+        Metodo para pausar el mundo o simulacion
+        """
         self.timer.stop()
 
     def movimientopaso_x_paso(self):
-        print("funcionamiento paso por paso")
+        """
+        Metodo para avanzar la simulacion de paso a paso
+        """
+        # print("funcionamiento paso por paso")
         self.timer.start(1700)
 
 
