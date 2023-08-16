@@ -9,6 +9,152 @@ from matplotlib.figure import Figure
 import matplotlib.style as mplstyle
 mplstyle.use('fast')
 
+class Eater:
+    ORIENTACIONES = ["N", "E", "S", "W"]  # Norte, Este, Sur, Oeste
+
+    def __init__(self, x, y, genoma=None):
+        self.x = x
+        self.y = y
+        self.direction = random.choice(['N', 'E', 'S', 'W'])  # Dirección inicial aleatoria
+        if genoma:
+            self.genoma = genoma
+        else:
+            # Si no se proporciona un genoma, generamos uno aleatorio.
+            self.genoma = [random.randint(0, 15) for _ in range(64)]
+        #self.posicion = posicion
+        #self.orientacion = orientacion
+        #self.estado = estado
+
+    # def girar_izquierda(self):
+    #     idx = self.ORIENTACIONES.index(self.orientacion)
+    #     self.orientacion = self.ORIENTACIONES[(idx - 1) % 4]
+
+    # def girar_derecha(self):
+    #     idx = self.ORIENTACIONES.index(self.orientacion)
+    #     self.orientacion = self.ORIENTACIONES[(idx + 1) % 4]
+
+    # def avanzar(self):
+    #     x, y = self.posicion
+    #     if self.orientacion == "N":
+    #         self.posicion = (x, y + 1)
+    #     elif self.orientacion == "E":
+    #         self.posicion = (x + 1, y)
+    #     elif self.orientacion == "S":
+    #         self.posicion = (x, y - 1)
+    #     elif self.orientacion == "W":
+    #         self.posicion = (x - 1, y)
+
+    # def retroceder(self):
+    #     x, y = self.posicion
+    #     if self.orientacion == "N":
+    #         self.posicion = (x, y - 1)
+    #     elif self.orientacion == "E":
+    #         self.posicion = (x - 1, y)
+    #     elif self.orientacion == "S":
+    #         self.posicion = (x, y + 1)
+    #     elif self.orientacion == "W":
+    #         self.posicion = (x + 1, y)
+
+    # def cambiar_estado(self, nuevo_estado):
+    #     self.estado = nuevo_estado % 16  # Asegura que el estado esté entre 0 y 15
+    
+    def see(self, world):
+        # Usaremos las direcciones para determinar qué es "enfrente" del Eater
+        directions = {
+            'up': (0, 1),
+            'down': (0, -1),
+            'left': (-1, 0),
+            'right': (1, 0)
+        }
+        
+        # Calculamos las coordenadas del cuadrado frente al Eater
+        front_x = self.x + directions[self.direction][0]
+        front_y = self.y + directions[self.direction][1]
+        
+        # Comprobamos qué hay en esa posición en el mundo
+        return world.get_at(front_x, front_y)
+
+    
+    def act(self, world):
+        # Ver lo que hay en frente
+        front_object = self.see(world)
+        
+        # Definir acciones basadas en lo que ve
+        if front_object == 'plant':
+            self.eat(world)
+        elif front_object == 'empty':
+            self.move_forward(world)
+        elif front_object == 'wall' or front_object == 'eater':
+            self.turn_random()
+
+    def eat(self, world):
+        # Asume que la planta ya ha sido "comida", por lo que solo incrementa el puntaje
+        self.score += 1
+
+    def move_forward(self, world):
+        # Mueve el Eater una posición en la dirección en la que está mirando
+        directions = {
+            'up': (0, 1),
+            'down': (0, -1),
+            'left': (-1, 0),
+            'right': (1, 0)
+        }
+        self.x += directions[self.direction][0]
+        self.y += directions[self.direction][1]
+
+    def turn_random(self):
+        # Gira el Eater en una dirección aleatoria
+        self.direction = random.choice(['up', 'down', 'left', 'right'])
+
+    
+    @staticmethod
+    def generate_random_genoma():
+        return ''.join([str(random.randint(1, 4)) for _ in range(4)])
+
+    def move_based_on_genoma(self, vision):
+        # Aquí, la "visión" es lo que el comedor "ve" en frente de él.
+        # Por simplicidad, asumimos que la visión puede ser: "planta", "comedor", "pared", o "nada".
+        vision_map = {"planta": 0, "comedor": 1, "pared": 2, "nada": 3}
+        action = int(self.genoma[vision_map[vision]])
+        
+        # Por ahora, las acciones son simples y se basan en el genoma:
+        # 1 = avance
+        # 2 = gire a la izquierda
+        # 3 = gire a la derecha
+        # 4 = retroceda
+        if action == 1:
+            angle = 0
+        elif action == 2:
+            angle = -90
+        elif action == 3:
+            angle = 90
+        else:
+            angle = 180
+        
+        # Convertir el ángulo a radianes y calcular el movimiento.
+        angle_rad = math.radians(angle)
+        move_x = math.cos(angle_rad)
+        move_y = math.sin(angle_rad)
+        
+        self.x += move_x
+        self.y += move_y
+
+    @staticmethod
+    def crossover(parent1, parent2):
+        # Tomamos la primera mitad del genoma de un padre y la segunda mitad del otro padre.
+        split_point = len(parent1.genoma) // 2
+        child_genoma = parent1.genoma[:split_point] + parent2.genoma[split_point:]
+        return Eater(parent1.x, parent1.y, child_genoma)
+
+    def mutate(self, mutation_rate):
+        # Hay una probabilidad de mutation_rate de que un gen cambie.
+        new_genoma = ''
+        for gene in self.genoma:
+            if random.uniform(0, 100) < mutation_rate:
+                new_genoma += str(random.randint(1, 4))
+            else:
+                new_genoma += gene
+        self.genoma = new_genoma
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -181,7 +327,6 @@ class MainWindow(QMainWindow):
 
     def generate_comedores(self, num_comedores, nacer_com):
         comedores = []
-        directions = ['up', 'down', 'left', 'right']
         table_size = 40  #Tamaño de la tabla (se asume cuadrada, 40x40 en este caso)
         cell_size = 1  #Tamaño de una celda
         for i in range(num_comedores):
@@ -197,8 +342,8 @@ class MainWindow(QMainWindow):
             elif nacer_com == "En la ubicación del padre":
                 x = random.uniform(0, table_size - cell_size)
                 y = random.uniform(0, table_size - cell_size)
-            direction = random.choice(directions)
-            comedores.append((x, y, direction))
+            comedor = Eater(x, y)
+            comedores.append(comedor)
         return comedores
     
     def generarMundo(self):
@@ -283,6 +428,47 @@ class MainWindow(QMainWindow):
         self.dias = 0
         self.labelDias.setText(f"Día: {self.dias}")
 
+    def ver_frente(self, otros_comedores, plantas):
+        x, y = self.posicion
+        if self.orientacion == "N":
+            x, y = x, y + 1
+        elif self.orientacion == "E":
+            x, y = x + 1, y
+        elif self.orientacion == "S":
+            x, y = x, y - 1
+        elif self.orientacion == "W":
+            x, y = x - 1, y
+
+        # Verificar si está viendo una pared
+        if x < 0 or x >= 40 or y < 0 or y >= 40:
+            return "pared"
+        
+        # Verificar si está viendo otro comedor
+        for comedor in otros_comedores:
+            if comedor.posicion == (x, y):
+                return "comedor"
+
+        # Verificar si está viendo una planta
+        for planta in plantas:
+            if planta == (x, y):
+                return "planta"
+
+        return "espacio"
+
+    def aplicar_reglas(self, vista):
+        if vista == "planta":
+            self.avanzar()
+        elif vista == "comedor":
+            self.girar_izquierda()
+        elif vista == "pared":
+            self.girar_derecha()
+        elif vista == "espacio":
+            if self.estado % 2 == 0:
+                self.avanzar()
+            else:
+                self.girar_izquierda()
+
+    
     def move_comedores(self):
         self.dias +=1
         # Velocidad de movimiento de los comedores
@@ -303,42 +489,28 @@ class MainWindow(QMainWindow):
         plantas_comidas = []
 
         for comedor in self.comedores:
-            x, y, direction = comedor
-            move_x, move_y = 0, 0
+            vista = comedor.ver_frente(self.comedores, self.plantas)
+            comedor.aplicar_reglas(vista)
+            comedor.act(self)  # Llama al método act del Eater
+            if vista == "planta":
+                comedor.avanzar()
+            elif vista in ["pared", "comedor"]:
+                comedor.girar_izquierda()
+            else:
+                accion = random.choice(["avanzar", "retroceder", "girar_izquierda", "girar_derecha"])
+                if accion == "avanzar":
+                    comedor.avanzar()
+                elif accion == "retroceder":
+                    comedor.retroceder()
+                elif accion == "girar_izquierda":
+                    comedor.girar_izquierda()
+                elif accion == "girar_derecha":
+                    comedor.girar_derecha()
 
-            if direction == 'up':
-                move_y = 1
-            elif direction == 'down':
-                move_y = -1
-            elif direction == 'left':
-                move_x = -1
-            elif direction == 'right':
-                move_x = 1
-
-            new_x = x + move_x
-            new_y = y + move_y
-
-            planta_comida = False
-            for planta in self.plantas:
-                if self.distancia_euclidiana((new_x, new_y), planta) < 1.5:
-                    self.plantas.remove(planta)
-                    planta_comida = True
-                    break
-
-            if not planta_comida or new_x < 0 or new_x > 40 or new_y < 0 or new_y > 40:
-                # Si no comió una planta o está en el borde, gira a la izquierda o derecha
-                if direction == 'up':
-                    direction = random.choice(['left', 'right'])
-                elif direction == 'down':
-                    direction = random.choice(['left', 'right'])
-                elif direction == 'left':
-                    direction = random.choice(['up', 'down'])
-                elif direction == 'right':
-                    direction = random.choice(['up', 'down'])
-
-            # Actualiza la posición y dirección del comedor
-            index = self.comedores.index(comedor)
-            self.comedores[index] = (new_x, new_y, direction)
+                # Verificar si el comedor está cerca de alguna planta
+                for planta in self.plantas:
+                    if self.distancia_euclidiana((new_x, new_y), planta) < 1.5:  # Asumimos que si están a menos de 1.5 unidades, el comedor come la planta
+                        plantas_comidas.append(planta)
         
         plantas_comidas_set = set(plantas_comidas)  # Convertir la lista a un conjunto
 
@@ -374,9 +546,9 @@ class MainWindow(QMainWindow):
             ax = self.figure.add_subplot(111)
             
             # Dibuja comedores
-            for x, y, direction in self.comedores:
-                comedor, = ax.plot(x, y, "4", color='red', markersize=7)
-                self.comedores_graphics.append(comedor)
+            for comedor in self.comedores:
+                comedor_graphic, = ax.plot(comedor.x, comedor.y, "4", color='red', markersize=7)
+                self.comedores_graphics.append(comedor_graphic)
 
             # Dibuja plantas
             for x, y in self.plantas:

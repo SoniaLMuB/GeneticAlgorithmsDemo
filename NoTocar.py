@@ -181,7 +181,6 @@ class MainWindow(QMainWindow):
 
     def generate_comedores(self, num_comedores, nacer_com):
         comedores = []
-        directions = ['up', 'down', 'left', 'right']
         table_size = 40  #Tamaño de la tabla (se asume cuadrada, 40x40 en este caso)
         cell_size = 1  #Tamaño de una celda
         for i in range(num_comedores):
@@ -197,8 +196,7 @@ class MainWindow(QMainWindow):
             elif nacer_com == "En la ubicación del padre":
                 x = random.uniform(0, table_size - cell_size)
                 y = random.uniform(0, table_size - cell_size)
-            direction = random.choice(directions)
-            comedores.append((x, y, direction))
+            comedores.append((x, y))
         return comedores
     
     def generarMundo(self):
@@ -303,42 +301,26 @@ class MainWindow(QMainWindow):
         plantas_comidas = []
 
         for comedor in self.comedores:
-            x, y, direction = comedor
-            move_x, move_y = 0, 0
+            # Genera una dirección aleatoria en la que moverse
+            angle = random.uniform(0, 2 * math.pi)
+            move_x = math.cos(angle) * speed
+            move_y = math.sin(angle) * speed
 
-            if direction == 'up':
-                move_y = 1
-            elif direction == 'down':
-                move_y = -1
-            elif direction == 'left':
-                move_x = -1
-            elif direction == 'right':
-                move_x = 1
+            # Actualiza la posición del comedor
+            new_x = comedor[0] + move_x
+            new_y = comedor[1] + move_y
 
-            new_x = x + move_x
-            new_y = y + move_y
+            # Asegurarse de que el comedor no salga del límite del área de simulación
+            new_x = max(0, min(40, new_x))
+            new_y = max(0, min(40, new_y))
 
-            planta_comida = False
-            for planta in self.plantas:
-                if self.distancia_euclidiana((new_x, new_y), planta) < 1.5:
-                    self.plantas.remove(planta)
-                    planta_comida = True
-                    break
-
-            if not planta_comida or new_x < 0 or new_x > 40 or new_y < 0 or new_y > 40:
-                # Si no comió una planta o está en el borde, gira a la izquierda o derecha
-                if direction == 'up':
-                    direction = random.choice(['left', 'right'])
-                elif direction == 'down':
-                    direction = random.choice(['left', 'right'])
-                elif direction == 'left':
-                    direction = random.choice(['up', 'down'])
-                elif direction == 'right':
-                    direction = random.choice(['up', 'down'])
-
-            # Actualiza la posición y dirección del comedor
             index = self.comedores.index(comedor)
-            self.comedores[index] = (new_x, new_y, direction)
+            self.comedores[index] = (new_x, new_y)
+
+            # Verificar si el comedor está cerca de alguna planta
+            for planta in self.plantas:
+                if self.distancia_euclidiana((new_x, new_y), planta) < 1.5:  # Asumimos que si están a menos de 1.5 unidades, el comedor come la planta
+                    plantas_comidas.append(planta)
         
         plantas_comidas_set = set(plantas_comidas)  # Convertir la lista a un conjunto
 
@@ -374,7 +356,7 @@ class MainWindow(QMainWindow):
             ax = self.figure.add_subplot(111)
             
             # Dibuja comedores
-            for x, y, direction in self.comedores:
+            for x, y in self.comedores:
                 comedor, = ax.plot(x, y, "4", color='red', markersize=7)
                 self.comedores_graphics.append(comedor)
 
